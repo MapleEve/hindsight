@@ -50,6 +50,7 @@ jobs:
       integrations-smolagents: ${{ steps.filter.outputs.integrations-smolagents }}
       integrations-dify: ${{ steps.filter.outputs.integrations-dify }}
       tools-agent-sdk: ${{ steps.filter.outputs.tools-agent-sdk }}
+      integrations-roo-code: ${{ steps.filter.outputs.integrations-roo-code }}
       dev: ${{ steps.filter.outputs.dev }}
       ci: ${{ steps.filter.outputs.ci }}
       # Secrets are available for internal PRs and workflow_dispatch.
@@ -145,6 +146,8 @@ jobs:
             - 'hindsight-integrations/dify/**'
           tools-agent-sdk:
             - 'hindsight-tools/hindsight-agent-sdk/**'
+          integrations-roo-code:
+            - 'hindsight-integrations/roo-code/**'
           dev:
             - 'hindsight-dev/**'
           ci:
@@ -698,6 +701,31 @@ jobs:
       working-directory: ./hindsight-integrations/pipecat
       run: uv run pytest tests -v
 
+  test-roo-code-integration:
+    needs: [detect-changes]
+    if: >-
+      github.event_name != 'pull_request_review' &&
+      (github.event_name == 'workflow_dispatch' ||
+      needs.detect-changes.outputs.integrations-roo-code == 'true' ||
+      needs.detect-changes.outputs.ci == 'true')
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v6
+      with:
+        ref: ${{ github.event.pull_request.head.sha || '' }}
+
+    - name: Set up Python
+      uses: actions/setup-python@v6
+      with:
+        python-version: '3.11'
+
+    - name: Install pytest
+      run: pip install pytest
+
+    - name: Run tests
+      working-directory: ./hindsight-integrations/roo-code
+      run: python -m pytest tests/ -v
 
   build-control-plane:
     needs: [detect-changes]
@@ -3669,6 +3697,7 @@ jobs:
       - build-chat-integration
       - test-paperclip-integration
       - test-pipecat-integration
+      - test-roo-code-integration
       - build-control-plane
       - build-docs
       - test-rust-cli
